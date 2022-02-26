@@ -27,5 +27,5 @@ volumes:
   data:
     driver: local
 networks:
-  mongo-compose-network:
+  app-network:
     driver: bridge
