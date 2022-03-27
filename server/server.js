@@ -9,9 +9,12 @@ const Message = require('./models/messages');
 const Subscription = require('./models/subscription');
 const Users = require('./models/users');
 const cors = require('cors');
-
-
+const jwt = require('jsonwebtoken');
 const config = require('../config');
+const authMiddleware = require('./middleware/authMiddleware');
+
+
+const secret = config.secret;
 const privateVapidKey = config.privateVapidKey;
 const publicVapidKey = config.publicVapidKey;
 const saltRounds = 10;
@@ -43,10 +46,17 @@ const server = async () => {
 }
 server();
 
+const generateAccessToken = (id, username) => {
+    const payload = {
+        id,
+        username
+    }
+    return jwt.sign(payload, secret, {expiresIn: '2h'});
+}
 
 webpush.setVapidDetails('mailto:eskov@cashalot.co', publicVapidKey, privateVapidKey);
 
-app.get('/users', cors(corsOptions), async function(req, res){
+app.get('/users', cors(corsOptions), authMiddleware,  async function(req, res){
     try {
         const users = await Users.find({});
         res.status(200).json({message: 'Users list', users});
@@ -57,7 +67,7 @@ app.get('/users', cors(corsOptions), async function(req, res){
 })
 app.options('*', cors(corsOptions));
 
-app.post('/subscribe',  async function(req, res) {
+app.post('/subscribe',  authMiddleware, async function(req, res) {
     try {
         let hash = objectHash(req.body);
         let subscription = req.body.subscription;
@@ -96,13 +106,14 @@ app.post('/subscribe',  async function(req, res) {
     }
 });
 
-app.post('/sent-notifications', cors(corsOptions), async function (req, res){
+app.post('/sent-notifications', cors(corsOptions), authMiddleware, async function (req, res){
     try {
         const id = req.body.id;
         const title = req.body.title;
         const body = req.body.body;
         const allSubscriptions = await Subscription.find();
-        console.log(allSubscriptions)
+        console.log(allSubscriptions);
+        console.log(req.body);
         allSubscriptions.forEach(function(item) {
             if (item.userId === id) {
                 let ourMessage = JSON.stringify({title, body});
@@ -114,6 +125,7 @@ app.post('/sent-notifications', cors(corsOptions), async function (req, res){
         });
     } catch (err) {
         console.log(err);
+        res.status(400).json({"error" : err});
     }
 });
 
@@ -139,14 +151,16 @@ app.post('/login', cors(corsOptions), async (req,res) => {
         const username = req.body.username;
         const user = await Users.findOne({user: username});
         let checkPassword = bcrypt.compareSync(req.body.password, user.password);
-        console.log(checkPassword)
+        console.log(user)
+        const token = generateAccessToken(user._id, user.username);
         if (checkPassword) {
             res.status(200).json({
                 status: "200",
                 message: "Login success",
                 user: {
                     username: username,
-                    id: user._id
+                    id: user._id,
+                    token: token
                 }
             });
         } else {
