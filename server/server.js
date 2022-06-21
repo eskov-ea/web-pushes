@@ -112,8 +112,6 @@ app.post('/sent-notifications', cors(corsOptions), authMiddleware, async functio
         const title = req.body.title;
         const body = req.body.body;
         const allSubscriptions = await Subscription.find();
-        console.log(allSubscriptions);
-        console.log(req.body);
         allSubscriptions.forEach(function(item) {
             if (item.userId === id) {
                 let ourMessage = JSON.stringify({title, body});

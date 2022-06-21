@@ -7,7 +7,10 @@ module.exports = {
     DB_USER: 'admin',
     DB_PASSWORD: '1234',
     DB_NAME: '',
-    secret: "SuPeR_SecReT-Key/"
+    secret: "SuPeR_SecReT-Key/",
+    alg: 'ES256',
+    kid: '9HU4TZ5FNM',
+    iss: '8T287D8PYU'
 };
 
 
